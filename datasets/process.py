@@ -280,21 +280,12 @@ def get_calpha_graph(name, rec, state1, c_alpha_coords, n_coords, c_coords, chis
     structure_graph['stru'].side_chain_vecs = side_chain_vecs.float()
     structure_graph['stru', 'rec_contact', 'stru'].edge_index = torch.from_numpy(np.asarray([src_list, dst_list]))
 
-    # 加载结构谱特征##################################
-
     profile_npz = np.load(profile_path)
     profile = profile_npz["profile"]  # (L, L, 36)
     entropy = profile_npz["entropy"]  # (L, L, 1)
     combined = np.concatenate([profile, entropy], axis=-1).mean(axis=1)
-
-    # 存为结构图的 profile
     structure_graph['stru'].profile = torch.from_numpy(combined).float()
     # print(profile_path)
-
-    # 加载结构谱特征##################################
-
-
-    # 给结构中添加另一个态
     if state1 is not None:
         state1_rec, state1_coords, state1_c_alpha_coords, state1_n_coords, state1_c_coords, state1_chis, state1_chi_masks, state1_lm_embeddings = extract_structure(state1)
         assert len(state1_c_alpha_coords) == len(c_alpha_coords), f'{name} ca ne crystal'
