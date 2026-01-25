@@ -31,12 +31,7 @@ def read_strings_from_txt(path):
     
 
 def get_model(args, device, t_to_sigma, no_parallel=False, confidence_mode=False):
-    model_class = ScoreModel  # 返回预测的res_tr_pred,res_rot_pred,res_chi_pred
-    '''
-    embedding type使用方式是sinusoidal
-    sinusoidal是一种表示嵌入的类型，嵌入将高维空间中的对象映射到低维空间的方法，通常将离散的、不连续的数据表示为
-    低维的，稠密的向量
-    '''
+    model_class = ScoreModel 
     timestep_emb_func = get_timestep_embedding(
         embedding_type=args.embedding_type,
         embedding_dim=args.sigma_embed_dim,
@@ -69,8 +64,7 @@ def get_optimizer_and_scheduler(args, model, scheduler_mode='min'):
 
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.w_decay)
 
-    # 学习率调度器，动态调整学习率
-    if args.scheduler == 'plateau':  # 默认为这个选项
+    if args.scheduler == 'plateau': 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode=scheduler_mode, factor=0.5,
                                                                patience=args.scheduler_patience, min_lr=(args.lr*0.1) / 100)
     else:
