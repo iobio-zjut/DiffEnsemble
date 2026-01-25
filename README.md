@@ -30,5 +30,5 @@ pip install e3nn  fair-esm spyrmsd
 ### 📌 Example: Run inference
 
 ```
-python run_inference.py --target_folder ${input_pdbs_list} --ckpt_path ${ckpt.pt}
+python run_inference.py --protein_path ${target_path} --target_txt ${target_list} --out_dir ${output folder} --esm_embeddings_path ${esm embedding} --profile_features ${tructural profile} --model_dir ${ckpt.pt} --inference_steps ${inference_steps} --batch_size ${num}
 ```
