@@ -1,7 +1,7 @@
 # coding=utf-8
 """
 @author:cxy
-@file: inference_energy.py
+@file: run_inference.py
 @date: 2024/9/20 10:30
 """
 import copy
@@ -35,16 +35,16 @@ parser = ArgumentParser()
 parser.add_argument('--protein_path', type=str, required=True, help='Path to the target .pdb file')
 parser.add_argument('--target_txt', type=str, required=True, help='protein name')
 parser.add_argument('--out_dir', type=str, default='./target_results', help='Directory where the outputs will be written to')
-parser.add_argument('--esm_embeddings_path', type=str, default='/share/home/zhanglab/cxy/Multi_conformation/Dig_data_esm', help='If this is set then the LM embeddings at that path will be used for the receptor features')
-parser.add_argument('--profile_features', type=str, default="/share/home/zhanglab/cxy/Multi_conformation/train_align_cat", help='test dataset')
+parser.add_argument('--esm_embeddings_path', type=str, default='esm_folder', help='If this is set then the LM embeddings at that path will be used for the receptor features')
+parser.add_argument('--profile_features', type=str, default="profile_features", help='test dataset')
 parser.add_argument('--save_visualisation', action='store_true', default=False, help='Save a pdb file with all of the steps of the reverse diffusion')
 parser.add_argument('--samples_per_complex', type=int, default=10, help='Number of samples to generate')
 parser.add_argument('--savings_per_complex', type=int, default=10, help='Number of samples to save')
 parser.add_argument('--seed', type=int, default=17, help='set seed number')
-parser.add_argument('--model_dir', type=str, default='/mydata/cuixinyue/Ensemble/predict/save_models/version_x_profile', help='Path to folder with trained score model and hyperparameters')
+parser.add_argument('--model_dir', type=str, default='/save_models', help='Path to folder with trained score model and hyperparameters')
 parser.add_argument('--inference_num', type=int, default=0, help='Path to folder with trained score model and hyperparameters')
 parser.add_argument('--batch_size', type=int, default=1, help='')
-parser.add_argument('--cache_path', type=str, default='/mydata/cuixinyue/Ensemble/predict/cache', help='Folder from where to load/restore cached dataset')
+parser.add_argument('--cache_path', type=str, default='/cache', help='Folder from where to load/restore cached dataset')
 parser.add_argument('--no_random', action='store_true', default=False, help='Use no randomness in reverse diffusion')
 parser.add_argument('--no_final_step_noise', action='store_true', default=False, help='Use no noise in the final step of the reverse diffusion')
 parser.add_argument('--ode', action='store_true', default=False, help='Use ODE formulation for inference')
@@ -151,11 +151,10 @@ test_dataset = Pre_multiConf(transform=None, cache_path=args.cache_path, data_li
                          all_atoms=args.all_atoms, atom_radius=args.atom_radius, atom_max_neighbors=args.atom_max_neighbors,
                          esm_embeddings_path=args.esm_embeddings_path, use_existing_cache=args.use_existing_cache, profile_features_path=args.profile_features)
 
-# 数据加载
 test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 print(len(test_loader))
 print("load dataset was completed...........")
-t_to_sigma = partial(t_to_sigma_compl, args=args)  # partial函数，其中score_model_args是传入参数，t_to_sigma_compl是函数
+t_to_sigma = partial(t_to_sigma_compl, args=args) 
 
 model = get_model(args, device, t_to_sigma=t_to_sigma, no_parallel=True)
 state_dict = torch.load(f'{args.model_dir}', map_location=torch.device('cpu'))
@@ -175,21 +174,15 @@ print(f"The process of {args.protein_path}")
 
 
 def predict_one_complex(orig_structure_graph, model, res_tr_schedule, res_rot_schedule, res_chi_schedule, t_to_sigma, N, args, device, ):
-
-    '''
-    :param N:使用此参数的原因是：原始论文中的配体相应坐标每一次会重新生成，因此需要很多副本，而对于这一任务
-    不在有配体，因此不需要这么多副本
-    '''
     data_list = [copy.deepcopy(orig_structure_graph)]
     randomize_position(data_list, args.no_torsion, args.no_random, args.res_tr_sigma_max, args.res_rot_sigma_max)
     data_list_randomized = copy.deepcopy(data_list)
     now_pdbpath = os.path.join(args.protein_path, f"Diff_V1/{orig_structure_graph['name'][0]}.pdb")
-    receptor_pdb = parse_pdb_from_path(now_pdbpath)  # 获取蛋白质
+    receptor_pdb = parse_pdb_from_path(now_pdbpath)  
     start_time = time.time()
     visualization_list = None
     steps = args.inference_steps
     final_data_list, data_list_step = [], [[] for _ in range(steps)]
-    # 以下循环只循环一次
     for i in range(int(np.ceil(len(data_list)/args.batch_size))):
         outputs = sampling(data_list=data_list[i*args.batch_size:(i+1)*args.batch_size], model=model,
                             inference_steps=steps, res_tr_schedule=res_tr_schedule, res_rot_schedule=res_rot_schedule,
@@ -215,7 +208,6 @@ def predict_one_complex(orig_structure_graph, model, res_tr_schedule, res_rot_sc
         pdbFiles.append(pdbFile)
     names_list = write_dir.split("/")[-2]
     return names_list
-
 
 for idx, orig_structure_graph in tqdm(enumerate(test_loader)):
     names_list = predict_one_complex(orig_structure_graph, model,
