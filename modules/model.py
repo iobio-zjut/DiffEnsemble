@@ -79,7 +79,6 @@ class ConvLayer(torch.nn.Module):
         if hidden_features is None:
             hidden_features = n_edge_features
 
-        # 创建一个张量积网络层，用于处理具有对称性质的输入数据
         self.tp = tp = o3.FullyConnectedTensorProduct(in_irreps, sh_irreps, out_irreps, shared_weights=False)
         self.fc = nn.Sequential(
             nn.Linear(n_edge_features, hidden_features),
@@ -93,7 +92,6 @@ class ConvLayer(torch.nn.Module):
         edge_src, edge_dst = edge_index
         tp = self.tp(node_attr[edge_dst], edge_sh, self.fc(edge_attr))
         out_nodes = out_nodes or node_attr.shape[0]
-        # 根据edge_src张量中的索引位置，在out张量的指定维度上执行scatter操作，将输入张量tp中的值进行填充或累加，并将结果保存在out张量中
         out = scatter(tp, edge_src, dim=0, dim_size=out_nodes, reduce=reduce)
         if self.residual:
             # print("residual")
@@ -131,29 +129,17 @@ class ScoreModel(torch.nn.Module):
         self.rec_edge_embedding = nn.Sequential(nn.Linear(sigma_embed_dim + distance_embed_dim, ns), nn.ReLU(), nn.Dropout(dropout), nn.Linear(ns, ns))
         self.rec_distance_expansion = GaussianSmearing(0.0, rec_max_radius, distance_embed_dim)
 
-        '''
-        ns表示空间维度，用于描述旋转操作的表示
-        nv旋转轴的维度，通常为3，用于描述三维空间的旋转
-        irrep_seq是一个列表，包含了不同阶数的不可约表示
-        x0e：表示该不可约表示的特征，x0e表示该表示中只包含偶次项，不包含奇次项
-        '''
         if use_second_order_repr:
             irrep_seq = [
-                f'{ns}x0e',  # 表示只包含偶次项的一阶不可约表示
-                f'{ns}x0e + {nv}x1o + {nv}x2e',  # 表示一阶不可约表示和二阶不可表示的奇次项的组合
-                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o',  # 表示一阶和二阶不可约表示的全部特征的组合
-                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o + {ns}x0o'  # 表示包含了更高阶的不可约表示的全部特征的组合
+                f'{ns}x0e',  
+                f'{ns}x0e + {nv}x1o + {nv}x2e',  
+                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o',  
+                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o + {ns}x0o' 
             ]
-            '''
-            odd number奇数项
-            even 偶数
-            3x0e:3 表示阶数，即球谐函数的阶数为三阶。x0e 表示球谐函数的性质，其中：x 表示球谐函数。0e 表示零阶球谐函数的偶次项
-            3x1o:3 表示阶数，即球谐函数的阶数为三阶。x1o 表示球谐函数的性质，其中：x 表示球谐函数。1o 表示一阶球谐函数的奇次项
-            3x1e:3 表示阶数，即球谐函数的阶数为三阶。x1e 表示球谐函数的性质，其中：x 表示球谐函数。1e 表示一阶球谐函数的偶次项。
-            '''
+
         else:
             irrep_seq = [
-                f'{ns}x0e',  # 表示只包含偶次项的一阶不可约表示
+                f'{ns}x0e',  
                 f'{ns}x0e + {nv}x1o',
                 f'{ns}x0e + {nv}x1o + {nv}x1e',
                 f'{ns}x0e + {nv}x1o + {nv}x1e + {ns}x0o'
@@ -164,9 +150,9 @@ class ScoreModel(torch.nn.Module):
             in_irreps = irrep_seq[min(i, len(irrep_seq) - 1)]
             out_irreps = irrep_seq[min(i + 1, len(irrep_seq) - 1)]
             parameters = {
-                'in_irreps': in_irreps,  # 输入张量的不可约表示
-                'sh_irreps': self.sh_irreps,  # 球谐函数的不可约表示
-                'out_irreps': out_irreps,  # 输出张量的不可约表示
+                'in_irreps': in_irreps,  
+                'sh_irreps': self.sh_irreps, 
+                'out_irreps': out_irreps, 
                 'n_edge_features': 3 * ns,
                 'hidden_features': 3 * ns,
                 'residual': False,
@@ -218,19 +204,17 @@ class ScoreModel(torch.nn.Module):
 
     def forward(self, data, eps=1e-12):
         # build structure graph
-        # 传入的加噪数据经过一系列网络层进行预测新的结构
         '''
         # print(rec_node_attr.shape) # [L,1327]
         # print(rec_edge_index.shape) # [2, x1]
         # print(rec_edge_sh.shape) # [x1, 9]
         '''
-        # 构图
         rec_node_attr, rec_edge_index, rec_edge_attr, rec_edge_sh = self.build_rec_conv_graph(data)
         rec_src, rec_dst = rec_edge_index
         rec_node_attr = self.rec_node_embedding(rec_node_attr)
         rec_edge_attr = self.rec_edge_embedding(rec_edge_attr)
 
-        for l in range(len(self.rec_conv_layers)):  # 2层
+        for l in range(len(self.rec_conv_layers)):  
             # print("rec_node_attr: ")
             # print(rec_node_attr.shape)  # (1144,16) or (1108,16)
             rec_edge_attr_ = torch.cat([rec_edge_attr, rec_node_attr[rec_src, :self.ns], rec_node_attr[rec_dst, :self.ns]], -1)
@@ -238,7 +222,6 @@ class ScoreModel(torch.nn.Module):
             # print(rec_edge_attr_.shape)  # (26386,48)
 
             if l == 0:
-                # lf_3pts是关键点位置信息 骨架原子信息
                 n_vec = data['stru'].lf_3pts[:, 0] - data['stru'].lf_3pts[:, 1]
                 n_norm_vec = n_vec / (n_vec.norm(dim=-1, keepdim=True) + eps)
                 c_vec = data['stru'].lf_3pts[:, 2] - data['stru'].lf_3pts[:, 1]
@@ -300,7 +283,6 @@ class ScoreModel(torch.nn.Module):
         edge_index = edge_index[[1, 0]]
         src, dst = edge_index
         edge_vec = data['stru'].pos[dst.long()] - data['stru'].pos[src.long()]
-        # 边距离嵌入为高斯分布的特征，通过高斯函数对输入距离进行平滑处理，生成一组新的特征
         edge_length_emb = self.rec_distance_expansion(edge_vec.norm(dim=-1))
         edge_sigma_emb = data['stru'].node_sigma_emb[edge_index[0].long()].to(edge_length_emb.device)
 
