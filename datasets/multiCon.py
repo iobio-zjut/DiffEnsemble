@@ -28,9 +28,7 @@ from utils.utils import *
 from datasets.process import parse_pdb_from_path
 from datetime import datetime
 import subprocess
-'''
-每训练一代新创建两个cache函数，一个训练，一个验证
-'''
+
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -50,17 +48,13 @@ class NoiseTransform(BaseTransform):
         res_tr_sigma, res_rot_sigma, res_chi_sigma = self.t_to_sigma(t_res_tr, t_res_rot, t_res_chi)
         set_time(data, t_res_tr, t_res_rot, t_res_chi, 1, self.all_atom, device=None)
 
-        # res_sigma = torch.clamp(torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0]  # 正态分布
-        res_sigma = torch.clamp(res_tr_sigma + torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0]  # 正态分布
+        # res_sigma = torch.clamp(torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0]  
+        res_sigma = torch.clamp(res_tr_sigma + torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0]  
 
         try:
             res_tr_update = data['stru'].state1_trans * res_sigma
             res_rot_update = data['stru'].state1_rotvecs * res_sigma
             res_chi_update = (data['stru'].state1_chis[:, [0, 2, 4, 5, 6]] * res_sigma + torch.normal(mean=0, std=0.3, size=(data['stru'].pos.shape[0], 5))) * data['stru'].chi_masks[:, [0, 2, 4, 5, 6]] if res_chi_update is None else res_chi_update
-            '''
-            根据传入参数对复合物构象位置角度进行更改
-            这里是根据AF2的坐标对绑定原始绑定结构进行扰动
-            '''
             modify_conformer(data, res_tr_update, res_rot_update, res_chi_update)
             data.res_tr_score = -res_tr_update
             data.res_rot_score = -res_rot_update
@@ -78,10 +72,7 @@ class multiConf(Dataset):
                  keep_original=False, remove_hs=False, all_atoms=False,
                  atom_radius=5, atom_max_neighbors=None, esm_embeddings_path=None,profile_features_path =None,
                  use_existing_cache=True):
-        '''
-        transform以及data_path参数被传递给数据集的超类Dataset,当使用DataLoader或者DataListLoader时，
-        __getitem__方法，将会调用transform对象对数据进行加噪处理
-        '''
+
         super(multiConf, self).__init__(data_path, transform)
         # self.parallel_count = 200
         self.parallel_count = 5000
@@ -96,21 +87,19 @@ class multiConf(Dataset):
         self.data_list = data_list
         if all_atoms:
             self.cache_path += '_allatoms'
-        # 动态构建路径
 
         mode = self.data_path.split("/")[-1]
         self.full_cache_path = os.path.join(self.cache_path, mode)
-        # self.full_cache_path = "/share/home/zhanglab/cxy/Multi_conformation/new_data_version1/data/cache/1104_091207"
+        # self.full_cache_path = "/share/home/zhanglab/cxy/cache/1104_091207"
         print(self.full_cache_path)
         self.keep_original = keep_original
         self.all_atoms = all_atoms
         self.atom_radius, self.atom_max_neighbors = atom_radius, atom_max_neighbors
-        # stru_graphs是整体结构的合成
         if (not use_existing_cache) or (not os.path.exists(os.path.join(self.full_cache_path, "stru_graphs.pkl"))):
             os.makedirs(self.full_cache_path, exist_ok=True)
-            if data_path is not None:  # 如果为空则说明是训练过程,直接从文件中进行读取数据
+            if data_path is not None:
                 self.preprocessing()
-            else:  # 不为空则说明是推断过程
+            else: 
                 self.inference_preprocessing()
         with open(os.path.join(self.full_cache_path, "stru_graphs.pkl"), 'rb') as f:
             self.stru_graphs = pickle.load(f)
@@ -122,10 +111,10 @@ class multiConf(Dataset):
         stru_graph = copy.deepcopy(self.stru_graphs[idx])
         return stru_graph
 
-    # 处理一个批次的复合物数据，并保存为pkl文件
+
     def process_one_batch(self, param):
         stru_names, lm_embeddings, i = param
-        # print(lm_embeddings)  # pkl文件
+        # print(lm_embeddings)
         if isinstance(lm_embeddings, str):
             with open(lm_embeddings, 'rb') as f:
                 lm_embeddings = pickle.load(f)
@@ -136,11 +125,7 @@ class multiConf(Dataset):
 
         with open(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl"), 'wb') as f:
             pickle.dump((stru_graphs), f)
-    '''
-    训练部分
-    数据来源：从预先提供的数据集中加载结构数据
-    处理对象：从预先提供的结构数据，将其转化成为图形数据
-    '''
+
     def preprocessing(self):
         structures_names_all = self.data_list
         lm_embeddings_all = []
@@ -156,7 +141,7 @@ class multiConf(Dataset):
             embedding = id_to_embeddings['representations'][33]
             # print(embedding[33].shape)  # (L,1280)
             embeddings_dictlist[key].append(embedding)
-            lm_embeddings_all.append(embeddings_dictlist[key])  # 所有蛋白质的embedding信息
+            lm_embeddings_all.append(embeddings_dictlist[key]) 
         if self.num_workers > 1:
             lm_embeddings_chains = None
             for i in range(len(structures_names_all)//self.parallel_count+1):
@@ -165,9 +150,9 @@ class multiConf(Dataset):
                 lm_embeddings_chains = lm_embeddings_all[self.parallel_count*i:self.parallel_count*(i+1)]
                 with open(os.path.join(self.full_cache_path, f'lm_embeddings_group_{i}.pkl'), 'wb') as f:
                     pickle.dump(lm_embeddings_chains, f)
-            del lm_embeddings_all, lm_embeddings_chains  # 释放内存
+            del lm_embeddings_all, lm_embeddings_chains 
             params = []
-            # lm_embedding特征
+
             for i in range(len(structures_names_all)//self.parallel_count+1):
                 if os.path.exists(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl")):
                     continue
@@ -175,14 +160,14 @@ class multiConf(Dataset):
                 params.append((structure_names, os.path.join(self.full_cache_path, f'lm_embeddings_group_{i}.pkl'), i))
             # print('params', len(params))
             p = Pool(self.num_workers)
-            p.map(self.process_one_batch, params)  # params:进程数
+            p.map(self.process_one_batch, params)  
             p.close()
-            stru_graphs_all = []  # 用于存储所有复合物的图形数据
+            stru_graphs_all = []  
             for i in range(len(structures_names_all)//self.parallel_count+1):
                 with open(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl"), 'rb') as f:
                     l = pickle.load(f)
-                    stru_graphs_all.extend(l)  # 将元素填充到末尾
-            with open(os.path.join(self.full_cache_path, f"stru_graphs.pkl"), 'wb') as f:  # 全部图
+                    stru_graphs_all.extend(l) 
+            with open(os.path.join(self.full_cache_path, f"stru_graphs.pkl"), 'wb') as f: 
                 pickle.dump((stru_graphs_all), f)
 
         else:
@@ -193,12 +178,8 @@ class multiConf(Dataset):
                     pbar.update()
             with open(os.path.join(self.full_cache_path, "stru_graphs.pkl"), 'wb') as f:
                 pickle.dump((stru_graphs), f)
-    '''
-    数据来源：根据给定的蛋白质路径列表动态加载结构数据
-    处理对象：处理从给定路径中加载的蛋白质结构数据，将其转换成图形数据
-    '''
+
     def inference_preprocessing(self):
-        # 获取pdb结构
         structure_list = []
         for idx in range(len(self.data_path)):
             structure_pdb = PDBParser(QUIET=True).get_structure('pdb', self.data_path[idx])
@@ -234,7 +215,7 @@ class multiConf(Dataset):
                         pbar.update()
                 if self.num_workers > 1: p.__exit__(None, None, None)
                 with open(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl"), 'wb') as f:
-                    pickle.dump((stru_graphs), f)  # 将信息进行保存
+                    pickle.dump((stru_graphs), f) 
             stru_graphs_all = []
             for i in range(len(self.data_path)//self.parallel_count+1):
                 with open(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl"), 'rb') as f:
@@ -252,11 +233,10 @@ class multiConf(Dataset):
             with open(os.path.join(self.full_cache_path, "stru_graphs.pkl"), 'wb') as f:
                 pickle.dump((stru_graphs), f)
 
-    def get_structure(self, par):  # par:多个参数的元组
+    def get_structure(self, par): 
         name, protein_path, lm_embedding_chains = par
 
         try:
-            # 返回的是结构 state1是af2结构，rec_state2是绑定结构，预测的时候是没有绑定结构的
             rec_state2, state1 = parse_structures(name, protein_path)
         except Exception as e:
             print(f'Skipping {name} folder because of the error:')
@@ -272,15 +252,10 @@ class multiConf(Dataset):
 
             if lm_embeddings is not None and len(c_alpha_coords) != len(lm_embeddings):
                 print(f'LM embeddings for {name} did not have the right length for the protein. Skipping {name}.')
-            # 结构谱特征######################
             if "_" in name:
-                parts = name.split("_", 3)  # 最多分割两次
+                parts = name.split("_", 3) 
                 name = parts[0] + "_" + parts[1] + "_" + parts[2]
             profile_path = os.path.join(self.profile_features_path, f"{name}.npz")
-            # print(f"name===={name}")
-            # 结构谱特征######################
-
-            # 获取受体图结构特征
             get_rec_graph(name, rec, state1, rec_coords, c_alpha_coords, n_coords, c_coords, chis, chi_masks, structure_graph, rec_radius=self.structure_radius,
                         c_alpha_max_neighbors=self.c_alpha_max_neighbors, all_atoms=self.all_atoms,
                         atom_radius=self.atom_radius, atom_max_neighbors=self.atom_max_neighbors, remove_hs=self.remove_hs, lm_embeddings=lm_embeddings, profile_path=profile_path)
@@ -288,8 +263,8 @@ class multiConf(Dataset):
             print(f'Skipping {name} LM because of the error:')
             print(e)
         try:
-            protein_center = torch.mean(structure_graph['stru'].pos, dim=0, keepdim=True)  # 受体中心
-            structure_graph['stru'].pos -= protein_center  # 标准化，减去中心
+            protein_center = torch.mean(structure_graph['stru'].pos, dim=0, keepdim=True) 
+            structure_graph['stru'].pos -= protein_center 
             structure_graph['stru'].lf_3pts -= protein_center[None, ...]
 
             if self.all_atoms:
@@ -308,10 +283,6 @@ class Pre_multiConf(Dataset):
                  keep_original=False, remove_hs=False, all_atoms=False,
                  atom_radius=5, atom_max_neighbors=None, esm_embeddings_path=None,
                  use_existing_cache=True):
-        '''
-        transform以及data_path参数被传递给数据集的超类Dataset,当使用DataLoader或者DataListLoader时，
-        __getitem__方法，将会调用transform对象对数据进行加噪处理
-        '''
         super(Pre_multiConf, self).__init__(data_path, transform)
         # self.parallel_count = 200
         self.parallel_count = 5000
@@ -345,7 +316,6 @@ class Pre_multiConf(Dataset):
         stru_graph = copy.deepcopy(self.stru_graphs[idx])
         return stru_graph
 
-    # 处理一个批次的复合物数据，并保存为pkl文件
     def process_one_batch(self, param):
         stru_names, lm_embeddings, i = param
         if isinstance(lm_embeddings, str):
@@ -359,12 +329,7 @@ class Pre_multiConf(Dataset):
         with open(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl"), 'wb') as f:
             pickle.dump((stru_graphs), f)
 
-    '''
-    数据来源：根据给定的蛋白质路径列表动态加载结构数据
-    处理对象：处理从给定路径中加载的蛋白质结构数据，将其转换成图形数据
-    '''
     def inference_preprocessing(self):
-        # 获取pdb结构
         structure_list = []
         for idx in range(len(self.data_path)):
             structure_pdb = PDBParser(QUIET=True).get_structure('pdb', self.data_path[idx])
@@ -422,7 +387,6 @@ class Pre_multiConf(Dataset):
     def get_structure(self, par):  # par:多个参数的元组
         name, protein_path, lm_embedding_chains = par
         try:
-            # 返回的是结构 state1是af2结构，rec_state2是绑定结构，预测的时候是没有绑定结构的
             state1 = parse_pdb_from_path(self.data_path[0])
         except Exception as e:
             print(f'Skipping {name} because of the error:')
@@ -438,7 +402,6 @@ class Pre_multiConf(Dataset):
 
             if lm_embeddings is not None and len(c_alpha_coords) != len(lm_embeddings):
                 print(f'LM embeddings for {name} did not have the right length for the protein. Skipping {name}.')
-    # 获取受体图结构特征
             get_rec_graph(name, rec, state1, rec_coords, c_alpha_coords, n_coords, c_coords, chis, chi_masks, structure_graph, rec_radius=self.structure_radius,
                        c_alpha_max_neighbors=self.c_alpha_max_neighbors, all_atoms=self.all_atoms,
                          atom_radius=self.atom_radius, atom_max_neighbors=self.atom_max_neighbors, remove_hs=self.remove_hs, lm_embeddings=lm_embeddings)
@@ -470,8 +433,8 @@ def construct_loader(args, t_to_sigma):
                    'all_atoms': args.all_atoms, 'atom_radius': args.atom_radius, 'atom_max_neighbors': args.atom_max_neighbors,
                    'esm_embeddings_path': args.esm_embeddings_path, "profile_features_path": args.profile_features_path}
 
-    train_list = read_strings_from_txt(args.train_set + "/train_x_profile_85415_list.txt")
-    val_list = read_strings_from_txt(args.val_set + "/val_x_profile_8942_list.txt")
+    train_list = read_strings_from_txt(args.train_set + "/train_list.txt")
+    val_list = read_strings_from_txt(args.val_set + "/val_list.txt")
 
     train_dataset = multiConf(cache_path=args.cache_path, data_list=train_list, data_path=args.train_set, keep_original=True, **common_args)
     val_dataset = multiConf(cache_path=args.cache_path, data_list=val_list, data_path=args.val_set, keep_original=True, **common_args)
@@ -480,10 +443,3 @@ def construct_loader(args, t_to_sigma):
     train_loader = loader_class(dataset=train_dataset, batch_size=args.batch_size, num_workers=args.num_dataloader_workers, drop_last=True, pin_memory=args.pin_memory)
     test_loader = loader_class(dataset=val_dataset, batch_size=args.batch_size, num_workers=args.num_dataloader_workers, shuffle=False, pin_memory=args.pin_memory)
     return train_loader, test_loader
-
-'''
-数据中的keys()值
-['state1_trans_sigma', 'state1_rotvecs_sigma', 'state1_rotvecs', 'lf_3pts', 'state1_trans', 'complex_t', 'pos', 
-'res_chi_score', 'x', 'res_tr_score', 'mu_r_norm', 'ptr', 'state1_chis', 'original_center', 'chis', 'edge_index', 
-'res_rot_score', 'name', 'side_chain_vecs', 'chi_symmetry_masks', 'batch', 'acc_pred_chis', 'node_t', 'chi_masks']
-'''
