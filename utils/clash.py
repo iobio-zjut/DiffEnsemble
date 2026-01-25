@@ -33,11 +33,9 @@ def compute_side_chain_metrics(pdbFile, vdw_radii_table=None, verbose=True):
     p_atoms_vdw = np.array([vdw_radii_table[a.element] for a in all_heavy_atoms])  # 蛋白质
     dis = cdist(atom_coords, atom_coords)
 
-    # 这里是判断自己的情况
     base_vdw_dis = p_atoms_vdw.reshape(-1, 1) + p_atoms_vdw.reshape(1, -1)
 
     clashScore, overlap, clash_n, n = compute_clash_score(dis, base_vdw_dis, clash_thr=4)
-    # 控制程序输出信息的详细程度
     if verbose:
         return clashScore, overlap, clash_n, n
     return clashScore
