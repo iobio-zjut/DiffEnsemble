@@ -24,22 +24,11 @@ def compute_RMSD(a, b):
     # correct rmsd calculation.
     return np.sqrt((((a-b)**2).sum(axis=-1)).mean())
 
-'''
-    实际上在预测的过程中目标是预测噪声
-    loss是模型预测值与参考值之间的差异
-    base_loss仅仅基于预测值的计算，用于在训练过程中便于观察目标分数的变化情况
-'''
-
 
 def loss_function(res_tr_pred, res_rot_pred, res_chi_pred, data, t_to_sigma, device, res_tr_weight=1, res_rot_weight=1, res_chi_weight=1, apply_mean=True, no_torsion=False, train_score=False, finetune=False):
     mean_dims = (0, 1) if apply_mean else 1
     data_t = [data.complex_t[noise_type] for noise_type in ['res_tr', 'res_rot', 'res_chi']]
     res_tr_sigma, res_rot_sigma, res_chi_sigma = t_to_sigma(*data_t)
-
-    '''
-    这里的res_loss_weight的权重是全1向量，本质上不起作用
-    如果结果差强人意，应该检查此变量的取值问题
-    '''
     res_loss_weight = data.res_loss_weight
 
     # local translation component
@@ -58,9 +47,7 @@ def loss_function(res_tr_pred, res_rot_pred, res_chi_pred, data, t_to_sigma, dev
     if apply_mean:
         res_rot_loss = res_rot_loss.mean()
         res_rot_base_loss = res_rot_base_loss.mean()
-    '''
-    计算角度误差的预选损失，如果存在对称性，则取最小的对称损失，损失按权重和常数3.0进行缩放
-    '''
+
     res_chi_score = data.res_chi_score
     res_chi_mask = data['stru'].chi_masks
     res_chi_mask = res_chi_mask[:, [0, 2, 4, 5, 6]]
@@ -90,14 +77,13 @@ def loss_function(res_tr_pred, res_rot_pred, res_chi_pred, data, t_to_sigma, dev
 def train_epoch(model, loader, optimizer, device, t_to_sigma, loss_fn, ema_weights, train_score=False, finetune=False):
     model.train()
     meter = AverageMeter(['loss', 'res_tr_loss', 'res_rot_loss', 'res_chi_loss', 'base_loss', 'res_tr_base_loss', 'res_rot_base_loss', 'res_chi_base_loss'])
-    bar = tqdm(loader, total=len(loader))  # 加噪后的数据
+    bar = tqdm(loader, total=len(loader)) 
     train_loss = 0.0
     train_num = 0.0
 
     for data in bar:
         optimizer.zero_grad()
         try:
-            # 模型预测
         # print(data["name"])
             res_tr_pred, res_rot_pred, res_chi_pred = model(data)
             loss, res_tr_loss, res_rot_loss, res_chi_loss, base_loss, res_tr_base_loss, res_rot_base_loss, res_chi_base_loss = \
@@ -225,7 +211,6 @@ def inference_epoch(model, structure_graphs, device, t_to_sigma, args):
         if (si+1) % args.sample_batch_size != 0 and si != len(structure_graphs):
             continue
         elif len(data_list) > 0:
-            # 设置随机位置
             randomize_position(data_list, args.no_torsion, False, args.res_tr_sigma_max, args.res_rot_sigma_max)
             predictions_one = None
             data_list_one = None
@@ -260,7 +245,6 @@ def inference_epoch(model, structure_graphs, device, t_to_sigma, args):
             orig_structure_graph_ = np.expand_dims(orig_structure_graph['stru'].pos.cpu().numpy(), axis=0)
             pred_rec_pos = data[0]['stru'].pos.cpu().numpy()  # numpy.ndarray
             pred_rec_pos_.append(pred_rec_pos)
-            # 计算前后结构的RMSD
             # print(pred_rec_pos.shape)
             # print(orig_structure_graph['stru'].pos.cpu().numpy().shape)
             # print("111111")
