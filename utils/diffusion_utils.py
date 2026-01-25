@@ -13,7 +13,6 @@ import math
 import torch.nn.functional as F
 
 
-# t_res_tr, t_res_tor, t_res_chi的值是服从均匀分布的随机值
 def t_to_sigma(t_res_tr, t_res_rot, t_res_chi, args):
     if torch.is_tensor(t_res_tr):
         res_tr_sigma = torch.clamp(args.res_tr_sigma_min + (args.res_tr_sigma_max-args.res_tr_sigma_min) * (t_res_tr*5.) ** 0.3, max=torch.tensor(1.).float().to(t_res_tr.device)) #** (1-t_res_tr) * args.res_tr_sigma_max ** t_res_tr
@@ -26,7 +25,7 @@ def t_to_sigma(t_res_tr, t_res_rot, t_res_chi, args):
     return res_tr_sigma, res_rot_sigma, res_chi_sigma
 
 
-# 根据给定角度进行数据角度信息更新
+
 def modify_conformer(data, res_tr_update, res_rot_update, res_chi_update):
     res_rot_mat = axis_angle_to_matrix(res_rot_update)
     data['stru'].lf_3pts = (data['stru'].lf_3pts - data['stru'].lf_3pts[:, [1], :]) @ res_rot_mat.transpose(1, 2) + data['stru'].lf_3pts[:, [1], :] + res_tr_update[:, None, :]
@@ -63,7 +62,7 @@ def set_time(complex_graphs, t_res_tr, t_res_rot, t_res_chi, batchsize, all_atom
             'tor': t_res_chi * torch.ones(complex_graphs['atom'].num_nodes).to(device)}
 
 
-# 根据给定的时间步长，嵌入维度和最大位置数，生成正弦和余弦的嵌入向量，用于在模型中表示时间序列数据的位置信息
+
 def sinusoidal_embedding(timesteps, embedding_dim, max_positions=10000):
     """ from https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/nn.py   """
     assert len(timesteps.shape) == 1
@@ -78,7 +77,7 @@ def sinusoidal_embedding(timesteps, embedding_dim, max_positions=10000):
     return emb
 
 
-# 根据输入生成高斯傅里叶变换的嵌入
+
 class GaussianFourierProjection(nn.Module):
     """Gaussian Fourier embeddings for noise levels.
     from https://github.com/yang-song/score_sde_pytorch/blob/1618ddea340f3e4a2ed7852a0694a809775cf8d0/models/layerspp.py#L32
