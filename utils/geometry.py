@@ -9,7 +9,6 @@ import math
 import torch
 
 
-# 将给定四元素表示的旋转转换为旋转矩阵
 def quaternion_to_matrix(quaternions):
     """
     From https://pytorch3d.readthedocs.io/en/latest/_modules/pytorch3d/transforms/rotation_conversions.html
@@ -42,7 +41,6 @@ def quaternion_to_matrix(quaternions):
     return o.reshape(quaternions.shape[:-1] + (3, 3))
 
 
-# 将给定的轴角表示的旋转转换为四元数
 def axis_angle_to_quaternion(axis_angle):
     """
     From https://pytorch3d.readthedocs.io/en/latest/_modules/pytorch3d/transforms/rotation_conversions.html
@@ -76,7 +74,6 @@ def axis_angle_to_quaternion(axis_angle):
     return quaternions
 
 
-# 将给定轴角表示的旋转转换为旋转矩阵
 def axis_angle_to_matrix(axis_angle):
     """
     From https://pytorch3d.readthedocs.io/en/latest/_modules/pytorch3d/transforms/rotation_conversions.html
@@ -94,7 +91,6 @@ def axis_angle_to_matrix(axis_angle):
     return quaternion_to_matrix(axis_angle_to_quaternion(axis_angle))
 
 
-# 使用Kabsch算法计算3D空间中的刚性变换，将点集A变换为点集B的最佳拟合刚性变换
 def rigid_transform_Kabsch_3D_torch(A, B):
     # R = 3x3 rotation matrix, t = 3x1 column vector
     # This already takes residue identity into account.
