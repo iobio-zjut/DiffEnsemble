@@ -81,7 +81,7 @@ def parse_structures(pdbid, pdbbind_dir):
 
 
 def parsePDB(pdbid, pdbbind_dir):
-    file_paths = os.listdir(os.path.join(pdbbind_dir, pdbid))  # 遍历文件夹
+    file_paths = os.listdir(os.path.join(pdbbind_dir, pdbid)) 
     crystal_rec_path = os.path.join(pdbbind_dir, pdbid, [path for path in file_paths if 'state2' in path][0])
     state1_rec_path = os.path.join(pdbbind_dir, pdbid, [path for path in file_paths if 'state1' in path][0])
     return parse_pdb_from_path(crystal_rec_path), parse_pdb_from_path(state1_rec_path)
