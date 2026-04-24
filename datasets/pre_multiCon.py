@@ -41,7 +41,7 @@ class NoiseTransform(BaseTransform):
         res_tr_sigma, res_rot_sigma, res_chi_sigma = self.t_to_sigma(t_res_tr, t_res_rot, t_res_chi)
         set_time(data, t_res_tr, t_res_rot, t_res_chi, 1, self.all_atom, device=None)
 
-        res_sigma = torch.clamp(torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0]  # 正态分布
+        res_sigma = torch.clamp(torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0] 
 
 
         try:
@@ -166,7 +166,7 @@ class Pre_multiConf(Dataset):
             with open(os.path.join(self.full_cache_path, "stru_graphs.pkl"), 'wb') as f:
                 pickle.dump((stru_graphs), f)
 
-    def get_structure(self, par):  # par:多个参数的元组
+    def get_structure(self, par): 
         name, protein_path, lm_embedding_chains = par
         state1 = parse_pdb_from_path(f"{protein_path}")
 
