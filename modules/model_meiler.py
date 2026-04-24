@@ -85,7 +85,6 @@ class ConvLayer(torch.nn.Module):
         if hidden_features is None:
             hidden_features = n_edge_features
 
-        # 创建一个张量积网络层，用于处理具有对称性质的输入数据
         self.tp = tp = o3.FullyConnectedTensorProduct(in_irreps, sh_irreps, out_irreps, shared_weights=False)
         self.fc = nn.Sequential(
             nn.Linear(n_edge_features, hidden_features),
@@ -101,7 +100,6 @@ class ConvLayer(torch.nn.Module):
 
         tp = self.tp(node_attr[edge_dst], edge_sh, self.fc(edge_attr))
         out_nodes = out_nodes or node_attr.shape[0]
-        # 根据edge_src张量中的索引位置，在out张量的指定维度上执行scatter操作，将输入张量tp中的值进行填充或累加，并将结果保存在out张量中
         out = scatter(tp, edge_src, dim=0, dim_size=out_nodes, reduce=reduce)
         if self.residual:
             padded = F.pad(node_attr, (0, out.shape[-1] - node_attr.shape[-1]))
@@ -139,10 +137,10 @@ class ScoreModel(torch.nn.Module):
 
         if use_second_order_repr:
             irrep_seq = [
-                f'{ns}x0e',  # 表示只包含偶次项的一阶不可约表示
-                f'{ns}x0e + {nv}x1o + {nv}x2e',  # 表示一阶不可约表示和二阶不可表示的奇次项的组合
-                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o',  # 表示一阶和二阶不可约表示的全部特征的组合
-                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o + {ns}x0o'  # 表示包含了更高阶的不可约表示的全部特征的组合
+                f'{ns}x0e', 
+                f'{ns}x0e + {nv}x1o + {nv}x2e', 
+                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o',  
+                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o + {ns}x0o' 
             ]
 
         else:
@@ -220,7 +218,7 @@ class ScoreModel(torch.nn.Module):
         for l in range(len(self.rec_conv_layers)):  # 2层
             rec_edge_attr_ = torch.cat([rec_edge_attr, rec_node_attr[rec_src, :self.ns], rec_node_attr[rec_dst, :self.ns]], -1)
             if l == 0:
-                # lf_3pts是关键点位置信息
+         
                 n_vec = data['stru'].lf_3pts[:, 0] - data['stru'].lf_3pts[:, 1]
                 n_norm_vec = n_vec / (n_vec.norm(dim=-1, keepdim=True) + eps)
                 c_vec = data['stru'].lf_3pts[:, 2] - data['stru'].lf_3pts[:, 1]
