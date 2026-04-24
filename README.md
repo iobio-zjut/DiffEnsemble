@@ -30,5 +30,5 @@ pip install e3nn  fair-esm spyrmsd
 ### 📌 Example: Run inference
 
 ```
-python run_inference.py --target_folder ${input_pdbs_list} --ckpt_path ${ckpt.pt}
+bash run_pipline.sh
 ```
