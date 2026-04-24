@@ -1,6 +1,6 @@
 #!/bin/bash
 
-base="/mydata/cuixinyue/Ensemble_server/example/6d7y_A"
+base="./example/6d7y_A"
 input="$base/input"
 output="$base/output"
 temp="$base/temp"
@@ -18,7 +18,7 @@ python /mydata/cuixinyue/Ensemble_server/run_inference.py \
   --out_dir "$base" \
   --esm_embeddings_path "$base/esm" \
   --profile_features "$base/profile/6d7y_A.npz" \
-  --model_dir "/mydata/cuixinyue/Ensemble_server/save_models/best_ema_model.pt" \
+  --model_dir "model.pt" \
   --inference_steps 10 \
   --batch_size 1 \
   --inference_num 1
@@ -43,7 +43,7 @@ done < "$list"
 
 ls "$temp/" | grep -v 'list.txt' > "$temp/list.txt"
 list="$temp/list.txt"
-bash /mydata/cuixinyue/Ensemble_server/bash_refine.sh
+bash bash_refine.sh
 rm -f "$input"/*.pdb
 
 while IFS= read -r line; do
