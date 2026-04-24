@@ -1,17 +1,17 @@
 #!/bin/bash
 ########## file_prepare#########
-cd "/mydata/cuixinyue/Ensemble_server"
+cd "./Ensemble_server"
 
-mkdir "/mydata/cuixinyue/Ensemble_server/6d7y_A/example"
-python /mydata/cuixinyue/Ensemble_server/lm_embedding_preparation.py --pdb_path /mydata/cuixinyue/Ensemble_server/example/6d7y_A/input/6d7y_A_0.pdb --out_file /mydata/cuixinyue/Ensemble_server/6d7y_A/example/fasta/seq.fasta
+mkdir "./6d7y_A/example"
+python ./lm_embedding_preparation.py --pdb_path ./example/6d7y_A/input/6d7y_A_0.pdb --out_file ./example/fasta/seq.fasta
 
 ## get esm ##
-target_folder="/mydata/cuixinyue/Ensemble_server/example/6d7y_A"
-base_folder="/mydata/cuixinyue/Ensemble_server"
+target_folder="./6d7y_A"
+base_folder=".."
 name=$(basename "$target_folder")
 mkdir -p "$target_folder/esm"
 
-python /mydata/cuixinyue/Ensemble_server/esm/scripts/extract.py \
+python ./esm/scripts/extract.py \
   esm2_t33_650M_UR50D \
   "$target_folder/fasta/seq.fasta" \
   "$target_folder/esm" \
@@ -22,9 +22,9 @@ python /mydata/cuixinyue/Ensemble_server/esm/scripts/extract.py \
   --class_name "$name"
 
 ###########DiffEnsemble##########
-target_folder="/mydata/cuixinyue/Ensemble_server/example/6d7y_A"
+target_folder="./example/6d7y_A"
 for i in {1..5}; do
-  bash /mydata/cuixinyue/Ensemble_server/run_model.sh
+  bash ./run_model.sh
 done
 
 mkdir -p "${target_folder}/output_result"
