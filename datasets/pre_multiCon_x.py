@@ -40,7 +40,7 @@ class NoiseTransform(BaseTransform):
         res_tr_sigma, res_rot_sigma, res_chi_sigma = self.t_to_sigma(t_res_tr, t_res_rot, t_res_chi)
         set_time(data, t_res_tr, t_res_rot, t_res_chi, 1, self.all_atom, device=None)
 
-        res_sigma = torch.clamp(torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0]  # 正态分布
+        res_sigma = torch.clamp(torch.normal(mean=0., std=0.2, size=(1,)).float(), min=0., max=1.)[0]
 
 
         try:
@@ -64,10 +64,7 @@ class Pre_multiConf(Dataset):
                  keep_original=False, remove_hs=False, all_atoms=False,
                  atom_radius=5, atom_max_neighbors=None, esm_embeddings_path=None,profile_features_path =None,
                  use_existing_cache=True):
-        '''
-        transform以及data_path参数被传递给数据集的超类Dataset,当使用DataLoader或者DataListLoader时，
-        __getitem__方法，将会调用transform对象对数据进行加噪处理
-        '''
+  
         super(Pre_multiConf, self).__init__(data_path, transform)
         # self.parallel_count = 200
         self.parallel_count = 2
@@ -153,7 +150,7 @@ class Pre_multiConf(Dataset):
 
                 if self.num_workers > 1: p.__exit__(None, None, None)
                 with open(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl"), 'wb') as f:
-                    pickle.dump((stru_graphs), f)  # 将信息进行保存
+                    pickle.dump((stru_graphs), f) 
             stru_graphs_all = []
             for i in range(len(self.data_path)//self.parallel_count+1):
                 with open(os.path.join(self.full_cache_path, f"stru_graphs{i}.pkl"), 'rb') as f:
