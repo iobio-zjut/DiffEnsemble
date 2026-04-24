@@ -1,0 +1,4 @@
+[console_scripts]
+esm-extract = esm.scripts.extract:main
+esm-fold = esm.scripts.fold:main
+

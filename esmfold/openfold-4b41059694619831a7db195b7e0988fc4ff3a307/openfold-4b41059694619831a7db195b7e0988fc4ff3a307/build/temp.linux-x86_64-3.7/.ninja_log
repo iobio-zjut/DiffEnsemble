@@ -1,0 +1,3 @@
+# ninja log v5
+1	21092	1732674521339023023	/node1data/cuixinyue/esmfold/openfold-4b41059694619831a7db195b7e0988fc4ff3a307/openfold-4b41059694619831a7db195b7e0988fc4ff3a307/build/temp.linux-x86_64-3.7/openfold/utils/kernel/csrc/softmax_cuda.o	853d90adf561c1b6
+2	142179	1732674642484048624	/node1data/cuixinyue/esmfold/openfold-4b41059694619831a7db195b7e0988fc4ff3a307/openfold-4b41059694619831a7db195b7e0988fc4ff3a307/build/temp.linux-x86_64-3.7/openfold/utils/kernel/csrc/softmax_cuda_kernel.o	dc924a4f01f06fb5

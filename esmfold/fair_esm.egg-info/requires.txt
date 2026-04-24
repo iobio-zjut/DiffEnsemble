@@ -1,0 +1,10 @@
+
+[esmfold]
+biopython
+deepspeed==0.5.9
+dm-tree
+pytorch-lightning
+omegaconf
+ml-collections
+einops
+scipy
