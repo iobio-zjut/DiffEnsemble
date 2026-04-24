@@ -122,15 +122,15 @@ class ScoreModel(torch.nn.Module):
 
         if use_second_order_repr:
             irrep_seq = [
-                f'{ns}x0e',  # 表示只包含偶次项的一阶不可约表示
-                f'{ns}x0e + {nv}x1o + {nv}x2e',  # 表示一阶不可约表示和二阶不可表示的奇次项的组合
-                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o',  # 表示一阶和二阶不可约表示的全部特征的组合
-                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o + {ns}x0o'  # 表示包含了更高阶的不可约表示的全部特征的组合
+                f'{ns}x0e', 
+                f'{ns}x0e + {nv}x1o + {nv}x2e', 
+                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o',  
+                f'{ns}x0e + {nv}x1o + {nv}x2e + {nv}x1e + {nv}x2o + {ns}x0o' 
             ]
 
         else:
             irrep_seq = [
-                f'{ns}x0e',  # 表示只包含偶次项的一阶不可约表示
+                f'{ns}x0e', 
                 f'{ns}x0e + {nv}x1o',
                 f'{ns}x0e + {nv}x1o + {nv}x1e',
                 f'{ns}x0e + {nv}x1o + {nv}x1e + {ns}x0o'
@@ -141,9 +141,9 @@ class ScoreModel(torch.nn.Module):
             in_irreps = irrep_seq[min(i, len(irrep_seq) - 1)]
             out_irreps = irrep_seq[min(i + 1, len(irrep_seq) - 1)]
             parameters = {
-                'in_irreps': in_irreps,  # 输入张量的不可约表示
-                'sh_irreps': self.sh_irreps,  # 球谐函数的不可约表示
-                'out_irreps': out_irreps,  # 输出张量的不可约表示
+                'in_irreps': in_irreps, 
+                'sh_irreps': self.sh_irreps,  
+                'out_irreps': out_irreps,  
                 'n_edge_features': 3 * ns,
                 'hidden_features': 3 * ns,
                 'residual': False,
