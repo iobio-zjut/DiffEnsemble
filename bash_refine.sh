@@ -2,9 +2,9 @@
 set -euo pipefail
 
 
-LIST_FILE="/mydata/cuixinyue/Ensemble_server/example/6d7y_A/temp/list.txt"
-TARGET_FOLDER="/mydata/cuixinyue/Ensemble_server/example/6d7y_A/temp"
-PY_FILE="/mydata/cuixinyue/Ensemble_server/refine.py"
+LIST_FILE="./example/6d7y_A/temp/list.txt"
+TARGET_FOLDER="./6d7y_A/temp"
+PY_FILE="./refine.py"
 MAX_JOBS=10
 CLEAN_JOBS=5
 
